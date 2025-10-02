@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: Threat Trainer
+## Notes: For Matthew & Bethany to learn how his threat shit works!
+## Author: trashcanhands
+## Version: 1.0
+## SavedVariables: ThreatTrainerDB
+
+ThreatTrainer.xml
