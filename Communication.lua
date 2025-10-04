@@ -9,7 +9,7 @@ function ThreatTrainer:OnAddonMessage(prefix, message, distribution, sender)
     if prefix ~= self.prefix then return end
     if sender == UnitName("player") then return end
     
-    local cmd, mobName, value = string.match(message, "(%w):(.+):(%d+)")
+    local _, _, cmd, mobName, value = string.find(message, "(%w):(.+):(%d+)")
     
     if cmd == "T" and mobName and value then
         if not self.partnerThreat[mobName] then
