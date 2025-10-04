@@ -37,23 +37,12 @@ function ThreatTrainer:CreateUI()
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOP", frame, "TOP", 0, -15)
     title:SetText("Threat Trainer")
-    frame.title = title
-    
-    local dragHint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    dragHint:SetPoint("TOP", frame, "TOP", 0, -32)
-    dragHint:SetText("|cff888888(Drag to move)|r")
-    frame.dragHint = dragHint
-    
-    local contentFrame = CreateFrame("Frame", nil, frame)
-    contentFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -55)
-    contentFrame:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -20, -55)
-    contentFrame:SetHeight(1)
-    frame.contentFrame = contentFrame
     
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
     
     frame.mobFrames = {}
+    frame.noMobsLabel = nil
     
     self.mainFrame = frame
     self.maxThreatSeen = 100
@@ -71,84 +60,6 @@ function ThreatTrainer:SavePosition()
     }
 end
 
-function ThreatTrainer:CreateMobFrame(mobName, yOffset)
-    local contentFrame = self.mainFrame.contentFrame
-    local mobFrame = CreateFrame("Frame", nil, contentFrame)
-    mobFrame:SetWidth(310)
-    mobFrame:SetHeight(85)
-    mobFrame:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, yOffset)
-    
-    local nameLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    nameLabel:SetPoint("TOPLEFT", mobFrame, "TOPLEFT", 0, 0)
-    nameLabel:SetText(mobName)
-    mobFrame.nameLabel = nameLabel
-    
-    local rangeLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rangeLabel:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -3)
-    rangeLabel:SetText("Range: Unknown")
-    mobFrame.rangeLabel = rangeLabel
-    
-    local myName = UnitName("player")
-    local partnerName = self.partnerName or "Partner"
-    
-    local myThreatLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    myThreatLabel:SetPoint("TOPLEFT", rangeLabel, "BOTTOMLEFT", 0, -8)
-    myThreatLabel:SetText(myName .. ":")
-    mobFrame.myThreatLabel = myThreatLabel
-    
-    local myThreatBar = CreateFrame("StatusBar", nil, mobFrame)
-    myThreatBar:SetPoint("LEFT", myThreatLabel, "RIGHT", 5, 0)
-    myThreatBar:SetWidth(150)
-    myThreatBar:SetHeight(16)
-    myThreatBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    myThreatBar:SetStatusBarColor(0.2, 0.8, 0.2)
-    myThreatBar:SetMinMaxValues(0, 100)
-    myThreatBar:SetValue(0)
-    
-    local myThreatBarBg = myThreatBar:CreateTexture(nil, "BACKGROUND")
-    myThreatBarBg:SetAllPoints(myThreatBar)
-    myThreatBarBg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    myThreatBarBg:SetVertexColor(0.1, 0.1, 0.1, 0.5)
-    
-    local myThreatValue = myThreatBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    myThreatValue:SetPoint("CENTER", myThreatBar, "CENTER", 0, 0)
-    myThreatValue:SetText("0")
-    mobFrame.myThreatValue = myThreatValue
-    mobFrame.myThreatBar = myThreatBar
-    
-    local partnerThreatLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    partnerThreatLabel:SetPoint("TOPLEFT", myThreatLabel, "BOTTOMLEFT", 0, -20)
-    partnerThreatLabel:SetText(partnerName .. ":")
-    mobFrame.partnerThreatLabel = partnerThreatLabel
-    
-    local partnerThreatBar = CreateFrame("StatusBar", nil, mobFrame)
-    partnerThreatBar:SetPoint("LEFT", partnerThreatLabel, "RIGHT", 5, 0)
-    partnerThreatBar:SetWidth(150)
-    partnerThreatBar:SetHeight(16)
-    partnerThreatBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    partnerThreatBar:SetStatusBarColor(0.2, 0.2, 0.8)
-    partnerThreatBar:SetMinMaxValues(0, 100)
-    partnerThreatBar:SetValue(0)
-    
-    local partnerThreatBarBg = partnerThreatBar:CreateTexture(nil, "BACKGROUND")
-    partnerThreatBarBg:SetAllPoints(partnerThreatBar)
-    partnerThreatBarBg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    partnerThreatBarBg:SetVertexColor(0.1, 0.1, 0.1, 0.5)
-    
-    local partnerThreatValue = partnerThreatBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    partnerThreatValue:SetPoint("CENTER", partnerThreatBar, "CENTER", 0, 0)
-    partnerThreatValue:SetText("0")
-    mobFrame.partnerThreatValue = partnerThreatValue
-    mobFrame.partnerThreatBar = partnerThreatBar
-    
-    local statusLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    statusLabel:SetPoint("LEFT", partnerThreatBar, "RIGHT", 8, 0)
-    statusLabel:SetText("Safe")
-    mobFrame.statusLabel = statusLabel
-    
-    return mobFrame
-end
-
 function ThreatTrainer:UpdateDisplay()
     if not self.mainFrame then return end
     
@@ -157,46 +68,108 @@ function ThreatTrainer:UpdateDisplay()
     end
     self.mainFrame.mobFrames = {}
     
+    if self.mainFrame.noMobsLabel then
+        self.mainFrame.noMobsLabel:Hide()
+        self.mainFrame.noMobsLabel = nil
+    end
+    
     local activeMobList = {}
     for mobName, _ in pairs(self.activeMobs) do
         table.insert(activeMobList, mobName)
     end
     table.sort(activeMobList)
     
-    if table.getn(activeMobList) == 0 then
+    local numMobs = table.getn(activeMobList)
+    
+    if numMobs == 0 then
         self.mainFrame:SetHeight(100)
-        local noMobsLabel = self.mainFrame.contentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        noMobsLabel:SetPoint("TOP", self.mainFrame.contentFrame, "TOP", 0, -20)
+        local noMobsLabel = self.mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        noMobsLabel:SetPoint("CENTER", self.mainFrame, "CENTER", 0, 0)
         noMobsLabel:SetText("No active mobs")
         noMobsLabel:SetTextColor(0.7, 0.7, 0.7)
+        self.mainFrame.noMobsLabel = noMobsLabel
         return
     end
     
-    local yOffset = 0
+    local yPos = -50
     local _, classEnglish = UnitClass("player")
     local isTank = classEnglish == "WARRIOR"
+    local myName = UnitName("player")
+    local partnerName = self.partnerName or "Partner"
     
-    for _, mobName in ipairs(activeMobList) do
-        local mobFrame = self:CreateMobFrame(mobName, yOffset)
+    for i, mobName in ipairs(activeMobList) do
+        local mobFrame = CreateFrame("Frame", nil, self.mainFrame)
+        mobFrame:SetWidth(320)
+        mobFrame:SetHeight(80)
+        mobFrame:SetPoint("TOPLEFT", self.mainFrame, "TOPLEFT", 15, yPos)
+        
+        local bg = mobFrame:CreateTexture(nil, "BACKGROUND")
+        bg:SetAllPoints(mobFrame)
+        bg:SetTexture(0.1, 0.1, 0.1, 0.3)
+        
         table.insert(self.mainFrame.mobFrames, mobFrame)
         
-        local isCurrentTarget = UnitName("target") == mobName
+        local isCurrentTarget = UnitName("target") == mobName and UnitCanAttack("player", "target")
+        
+        local nameLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        nameLabel:SetPoint("TOPLEFT", mobFrame, "TOPLEFT", 5, -5)
+        nameLabel:SetText(mobName)
         if isCurrentTarget then
-            mobFrame.nameLabel:SetTextColor(1, 1, 0)
+            nameLabel:SetTextColor(2, 0, 3)
         else
-            mobFrame.nameLabel:SetTextColor(1, 1, 1)
+            nameLabel:SetTextColor(.5, .5, .5)
         end
         
-        local inMeleeRange = false
-        if isCurrentTarget and UnitCanAttack("player", "target") then
-            inMeleeRange = CheckInteractDistance("target", 3)
-        end
+        local myLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        myLabel:SetPoint("TOPLEFT", nameLabel, "BOTTOMLEFT", 0, -10)
+        myLabel:SetText(myName .. ":")
+        myLabel:SetWidth(60)
+        myLabel:SetJustifyH("LEFT")
         
-        if inMeleeRange then
-            mobFrame.rangeLabel:SetText("|cffff8800Melee (110% to pull)|r")
-        else
-            mobFrame.rangeLabel:SetText("|cff8888ffRanged (130% to pull)|r")
-        end
+        local myThreatBar = CreateFrame("StatusBar", nil, mobFrame)
+        myThreatBar:SetPoint("LEFT", myLabel, "RIGHT", 5, 0)
+        myThreatBar:SetWidth(160)
+        myThreatBar:SetHeight(16)
+        myThreatBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        myThreatBar:SetMinMaxValues(0, 100)
+        myThreatBar:SetValue(0)
+        
+        local myBg = myThreatBar:CreateTexture(nil, "BACKGROUND")
+        myBg:SetAllPoints(myThreatBar)
+        myBg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        myBg:SetVertexColor(0.1, 0.1, 0.1, 0.8)
+        
+        local myValue = myThreatBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        myValue:SetPoint("CENTER", myThreatBar, "CENTER", 0, 0)
+        myValue:SetText("0")
+        
+        local partnerLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        partnerLabel:SetPoint("TOPLEFT", myLabel, "BOTTOMLEFT", 0, -22)
+        partnerLabel:SetText(partnerName .. ":")
+        partnerLabel:SetWidth(60)
+        partnerLabel:SetJustifyH("LEFT")
+        
+        local partnerThreatBar = CreateFrame("StatusBar", nil, mobFrame)
+        partnerThreatBar:SetPoint("LEFT", partnerLabel, "RIGHT", 5, 0)
+        partnerThreatBar:SetWidth(160)
+        partnerThreatBar:SetHeight(16)
+        partnerThreatBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        partnerThreatBar:SetStatusBarColor(0.2, 0.4, 0.8)
+        partnerThreatBar:SetMinMaxValues(0, 100)
+        partnerThreatBar:SetValue(0)
+        
+        local partnerBg = partnerThreatBar:CreateTexture(nil, "BACKGROUND")
+        partnerBg:SetAllPoints(partnerThreatBar)
+        partnerBg:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        partnerBg:SetVertexColor(0.1, 0.1, 0.1, 0.8)
+        
+        local partnerValue = partnerThreatBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        partnerValue:SetPoint("CENTER", partnerThreatBar, "CENTER", 0, 0)
+        partnerValue:SetText("0")
+        
+        local statusLabel = mobFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        statusLabel:SetPoint("LEFT", myThreatBar, "RIGHT", 10, 0)
+        statusLabel:SetText("")
         
         local myThreat = self.myThreat[mobName] or 0
         local partnerThreat = self.partnerThreat[mobName] or 0
@@ -210,11 +183,12 @@ function ThreatTrainer:UpdateDisplay()
         local myPercent = (myThreat / scale) * 100
         local partnerPercent = (partnerThreat / scale) * 100
         
-        mobFrame.myThreatValue:SetText(string.format("%d", myThreat))
-        mobFrame.partnerThreatValue:SetText(string.format("%d", partnerThreat))
-        mobFrame.myThreatBar:SetValue(myPercent)
-        mobFrame.partnerThreatBar:SetValue(partnerPercent)
+        myValue:SetText(string.format("%d", myThreat))
+        partnerValue:SetText(string.format("%d", partnerThreat))
+        myThreatBar:SetValue(myPercent)
+        partnerThreatBar:SetValue(partnerPercent)
         
+        local inMeleeRange = isCurrentTarget and CheckInteractDistance("target", 3)
         local pullThreshold = inMeleeRange and 110 or 130
         
         if isTank then
@@ -224,17 +198,17 @@ function ThreatTrainer:UpdateDisplay()
             end
             
             if partnerRatio >= pullThreshold then
-                mobFrame.statusLabel:SetText("LOSING!")
-                mobFrame.statusLabel:SetTextColor(1.0, 0.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(1.0, 0.0, 0.0)
+                statusLabel:SetText("LOSING!")
+                statusLabel:SetTextColor(1.0, 0.0, 0.0)
+                myThreatBar:SetStatusBarColor(1.0, 0.0, 0.0)
             elseif partnerRatio >= 100 then
-                mobFrame.statusLabel:SetText("Close")
-                mobFrame.statusLabel:SetTextColor(1.0, 1.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(1.0, 1.0, 0.0)
+                statusLabel:SetText("Close")
+                statusLabel:SetTextColor(1.0, 1.0, 0.0)
+                myThreatBar:SetStatusBarColor(1.0, 1.0, 0.0)
             else
-                mobFrame.statusLabel:SetText("Tanking")
-                mobFrame.statusLabel:SetTextColor(0.0, 1.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(0.2, 0.8, 0.2)
+                statusLabel:SetText("Tanking")
+                statusLabel:SetTextColor(0.0, 1.0, 0.0)
+                myThreatBar:SetStatusBarColor(0.3, 0.8, 0.3)
             end
         else
             local threatRatio = 0
@@ -243,24 +217,23 @@ function ThreatTrainer:UpdateDisplay()
             end
             
             if threatRatio >= pullThreshold then
-                mobFrame.statusLabel:SetText("PULLING!")
-                mobFrame.statusLabel:SetTextColor(1.0, 0.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(1.0, 0.0, 0.0)
+                statusLabel:SetText(string.format("%.0f%% - PULL!", threatRatio))
+                statusLabel:SetTextColor(1.0, 0.0, 0.0)
+                myThreatBar:SetStatusBarColor(1.0, 0.0, 0.0)
             elseif threatRatio >= 100 then
-                mobFrame.statusLabel:SetText("Caution")
-                mobFrame.statusLabel:SetTextColor(1.0, 1.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(1.0, 1.0, 0.0)
+                statusLabel:SetText(string.format("%.0f%% - Caution", threatRatio))
+                statusLabel:SetTextColor(1.0, 1.0, 0.0)
+                myThreatBar:SetStatusBarColor(1.0, 1.0, 0.0)
             else
-                mobFrame.statusLabel:SetText("Safe")
-                mobFrame.statusLabel:SetTextColor(0.0, 1.0, 0.0)
-                mobFrame.myThreatBar:SetStatusBarColor(0.2, 0.8, 0.2)
+                statusLabel:SetText(string.format("%.0f%% - Safe", threatRatio))
+                statusLabel:SetTextColor(0.0, 1.0, 0.0)
+                myThreatBar:SetStatusBarColor(0.3, 0.8, 0.3)
             end
         end
         
-        yOffset = yOffset - 90
+        yPos = yPos - 85
     end
     
-    local numMobs = table.getn(activeMobList)
-    local newHeight = 70 + (numMobs * 90)
+    local newHeight = 65 + (numMobs * 85)
     self.mainFrame:SetHeight(newHeight)
 end

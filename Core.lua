@@ -163,7 +163,7 @@ SlashCmdList["THREATTRAINER"] = function(msg)
         ThreatTrainerDB.autoShow = not ThreatTrainerDB.autoShow
         ThreatTrainerDB.autoHide = ThreatTrainerDB.autoShow
         local status = ThreatTrainerDB.autoShow and "enabled" or "disabled"
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00Threat Trainer:|r Auto show/hide " .. status)
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00Threat Trainer:|r Auto toggle " .. status)
     elseif msg == "debug" then
         DEFAULT_CHAT_FRAME:AddMessage("CreateUI exists: " .. tostring(ThreatTrainer.CreateUI ~= nil))
         DEFAULT_CHAT_FRAME:AddMessage("mainFrame exists: " .. tostring(ThreatTrainer.mainFrame ~= nil))
