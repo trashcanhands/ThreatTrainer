@@ -7,59 +7,64 @@ function ThreatTrainer:ParseCombatLog(event, message)
     local mobName, damage, healing
     
     if event == "CHAT_MSG_COMBAT_SELF_HITS" then
-        mobName, damage = string.match(message, "You hit (.+) for (%d+)%.")
+        _, _, mobName, damage = string.find(message, "You hit (.+) for (%d+)%.")
         if mobName and damage then
             self:AddThreat(mobName, self:CalculateDamageThreat(tonumber(damage)))
             return
         end
         
-        mobName, damage = string.match(message, "You crit (.+) for (%d+)%.")
+        _, _, mobName, damage = string.find(message, "You crit (.+) for (%d+)%.")
         if mobName and damage then
             self:AddThreat(mobName, self:CalculateDamageThreat(tonumber(damage)))
             return
         end
         
     elseif event == "CHAT_MSG_SPELL_SELF_DAMAGE" then
-        local spell, target, dmg = string.match(message, "Your (.+) hits (.+) for (%d+)")
+        local spell, target, dmg
+        _, _, spell, target, dmg = string.find(message, "Your (.+) hits (.+) for (%d+)")
         if spell and target and dmg then
             self:AddThreat(target, self:CalculateAbilityThreat(spell, tonumber(dmg)))
             return
         end
         
-        spell, target, dmg = string.match(message, "Your (.+) crits (.+) for (%d+)")
+        _, _, spell, target, dmg = string.find(message, "Your (.+) crits (.+) for (%d+)")
         if spell and target and dmg then
             self:AddThreat(target, self:CalculateAbilityThreat(spell, tonumber(dmg)))
             return
         end
         
-        target, spell = string.match(message, "(.+) is afflicted by (.+)%.")
+        local target, spell
+        _, _, target, spell = string.find(message, "(.+) is afflicted by (.+)%.")
         if target and spell then
             self:AddThreat(target, self:CalculateDamageThreat(1))
             return
         end
         
-        target = string.match(message, "(.+) resists your")
+        _, _, target = string.find(message, "(.+) resists your")
         if target then
             self:AddThreat(target, 0)
             return
         end
         
     elseif event == "CHAT_MSG_SPELL_PERIODIC_SELF_DAMAGE" then
-        local target, dmg = string.match(message, "(.+) suffers (%d+) .+ damage from your")
+        local target, dmg
+        _, _, target, dmg = string.find(message, "(.+) suffers (%d+) .+ damage from your")
         if target and dmg then
             self:AddThreat(target, self:CalculateDamageThreat(tonumber(dmg)))
             return
         end
         
     elseif event == "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE" then
-        local target, dmg = string.match(message, "(.+) suffers (%d+) .+ damage from your")
+        local target, dmg
+        _, _, target, dmg = string.find(message, "(.+) suffers (%d+) .+ damage from your")
         if target and dmg then
             self:AddThreat(target, self:CalculateDamageThreat(tonumber(dmg)))
             return
         end
         
     elseif event == "CHAT_MSG_SPELL_SELF_BUFF" or event == "CHAT_MSG_SPELL_PERIODIC_SELF_BUFFS" then
-        local buffName = string.match(message, "You gain (.+)%.")
+        local buffName
+        _, _, buffName = string.find(message, "You gain (.+)%.")
         
         if buffName then
             if buffName == "Power Word: Shield" then
@@ -102,7 +107,8 @@ function ThreatTrainer:ParseCombatLog(event, message)
             end
         end
         
-        local spell, heal = string.match(message, "Your (.+) heals you for (%d+)%.")
+        local spell, heal
+        _, _, spell, heal = string.find(message, "Your (.+) heals you for (%d+)%.")
         if spell and heal then
             local currentHP = UnitHealth("player")
             local maxHP = UnitHealthMax("player")
@@ -124,7 +130,7 @@ function ThreatTrainer:ParseCombatLog(event, message)
             return
         end
         
-        healing = string.match(message, "You gain (%d+) health from")
+        _, _, healing = string.find(message, "You gain (%d+) health from")
         if healing then
             local currentHP = UnitHealth("player")
             local maxHP = UnitHealthMax("player")
@@ -148,7 +154,8 @@ function ThreatTrainer:ParseCombatLog(event, message)
         
     elseif event == "CHAT_MSG_SPELL_PARTY_DAMAGE" then
         local playerName = UnitName("player")
-        local caster, spell, target, dmg = string.match(message, "(.+)'s (.+) hits (.+) for (%d+)")
+        local caster, spell, target, dmg
+        _, _, caster, spell, target, dmg = string.find(message, "(.+)'s (.+) hits (.+) for (%d+)")
         
         if caster == playerName and target and dmg then
             self:AddThreat(target, self:CalculateDamageThreat(tonumber(dmg)))
@@ -158,7 +165,8 @@ function ThreatTrainer:ParseCombatLog(event, message)
     elseif event == "CHAT_MSG_SPELL_PARTY_BUFF" or event == "CHAT_MSG_SPELL_PERIODIC_PARTY_BUFFS" then
         local playerName = UnitName("player")
         
-        local caster, spell, target, heal = string.match(message, "(.+)'s (.+) heals (.+) for (%d+)%.")
+        local caster, spell, target, heal
+        _, _, caster, spell, target, heal = string.find(message, "(.+)'s (.+) heals (.+) for (%d+)%.")
         if caster == playerName and heal then
             local numMobs = 0
             for mob, _ in pairs(self.activeMobs) do
@@ -174,7 +182,7 @@ function ThreatTrainer:ParseCombatLog(event, message)
             return
         end
         
-        caster, heal = string.match(message, "(.+) gains (%d+) health from your")
+        _, _, caster, heal = string.find(message, "(.+) gains (%d+) health from your")
         if caster and heal then
             local numMobs = 0
             for mob, _ in pairs(self.activeMobs) do
